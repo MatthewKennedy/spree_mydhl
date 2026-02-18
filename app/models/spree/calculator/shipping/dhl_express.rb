@@ -2,7 +2,7 @@ module Spree
   module Calculator::Shipping
     class DhlExpress < ShippingCalculator
         preference :username,            :string
-        preference :password,            :string
+        preference :password,            :password
         preference :account_number,      :string
         preference :origin_country_code, :string
         preference :origin_postal_code,  :string
@@ -10,8 +10,6 @@ module Spree
         preference :unit_of_measurement, :string, default: 'metric'
         preference :currency,            :string, default: -> { Spree::Store.default.default_currency }
         preference :sandbox,             :boolean, default: false
-
-        preference :amount, :decimal, default: 0
         preference :minimum_weight, :decimal, default: nil, nullable: true
         preference :maximum_weight, :decimal, default: nil, nullable: true
 

@@ -213,7 +213,8 @@ RSpec.describe SpreeDhl::DhlExpressClient do
             'originCountryCode'      => 'US',
             'destinationCountryCode' => 'DE',
             'weight'                 => '1.5',
-            'unitOfMeasurement'      => 'metric'
+            'unitOfMeasurement'      => 'metric',
+            'requestedCurrencyCode'  => 'USD'
           )
         )
       end

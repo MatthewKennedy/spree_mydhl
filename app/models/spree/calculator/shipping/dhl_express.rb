@@ -8,19 +8,33 @@ module Spree
         preference :origin_postal_code,  :string
         preference :origin_city_name,    :string
         preference :unit_of_measurement, :string, default: 'metric'
-        preference :currency,            :string
+        preference :currency,            :string, default: -> { Spree::Store.default.default_currency }
         preference :sandbox,             :boolean, default: false
+
+        preference :amount, :decimal, default: 0
+        preference :minimum_weight, :decimal, default: nil, nullable: true
+        preference :maximum_weight, :decimal, default: nil, nullable: true
 
         def self.description
           'DHL Express'
         end
 
         def available?(package)
-          return false if required_preferences_blank?
+          if required_preferences_blank?
+            Rails.logger.debug('[SpreeDhl] available? = false: one or more required preferences are blank')
+            return false
+          end
 
           address = package.order.ship_address
-          return false if address.nil?
-          return false if address.country&.iso.blank?
+          if address.nil?
+            Rails.logger.debug('[SpreeDhl] available? = false: ship_address is nil')
+            return false
+          end
+
+          if address.country&.iso.blank?
+            Rails.logger.debug('[SpreeDhl] available? = false: ship_address country ISO is blank')
+            return false
+          end
 
           true
         end
@@ -36,9 +50,10 @@ module Spree
           weight     = package_weight(package)
           dimensions = package_dimensions(package)
 
-          cache_key = build_cache_key(dest_country, dest_postal, dest_city, weight, dimensions)
+          currency  = effective_currency(package)
+          cache_key = build_cache_key(dest_country, dest_postal, dest_city, weight, dimensions, currency)
 
-          Rails.cache.fetch(cache_key, expires_in: 10.minutes) do
+          rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes) do
             client = SpreeDhl::DhlExpressClient.new(
               username:                 preferred_username,
               password:                 preferred_password,
@@ -54,11 +69,14 @@ module Spree
               width:                    dimensions[:width],
               height:                   dimensions[:height],
               unit_of_measurement:      preferred_unit_of_measurement,
-              currency:                 effective_currency,
+              currency:                 currency,
               sandbox:                  preferred_sandbox
             )
             client.cheapest_rate
           end
+
+          Rails.logger.debug("[SpreeDhl] compute_package -> #{rate.inspect} (#{dest_country} #{dest_postal})")
+          rate
         rescue StandardError => e
           Rails.logger.error("[SpreeDhl] compute_package failed: #{e.class}: #{e.message}")
           nil
@@ -101,13 +119,13 @@ module Spree
           }
         end
 
-        def effective_currency
-          preferred_currency.presence || Spree::Config.currency
+        def effective_currency(package)
+          preferred_currency.presence || package.order.currency || Spree::Config.currency
         end
 
-        def build_cache_key(dest_country, dest_postal, dest_city, weight, dimensions)
+        def build_cache_key(dest_country, dest_postal, dest_city, weight, dimensions, currency)
           [
-            'spree_dhl',
+            'spree_dhlx',
             'rates',
             preferred_origin_country_code,
             preferred_origin_postal_code,
@@ -118,10 +136,10 @@ module Spree
             dimensions[:length].round(2),
             dimensions[:width].round(2),
             dimensions[:height].round(2),
+            currency,
             Date.today.iso8601
           ].join('/')
         end
     end
   end
 end
-

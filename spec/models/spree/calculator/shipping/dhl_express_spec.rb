@@ -5,7 +5,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
   let(:country) { build(:country, iso: 'DE') }
   let(:address) { build(:address, country: country, zipcode: '10115', city: 'Berlin') }
-  let(:order)   { build(:order, ship_address: address) }
+  let(:order)   { build(:order, ship_address: address, currency: 'USD') }
   let(:variant) { build(:variant, depth: 10.0, width: 5.0, height: 3.0, weight: 1.0) }
   let(:content) { instance_double(Spree::Stock::ContentItem, variant: variant) }
   let(:package) do
@@ -184,6 +184,24 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
         calculator.compute_package(package)
       end
+
+      it 'passes the order currency to the client when no currency preference is set' do
+        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+          hash_including(currency: 'USD')
+        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+
+        calculator.compute_package(package)
+      end
+
+      it 'uses the currency preference over the order currency when set' do
+        calculator.preferred_currency = 'GBP'
+
+        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+          hash_including(currency: 'GBP')
+        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+
+        calculator.compute_package(package)
+      end
     end
 
     context 'when the client returns nil (API error)' do
@@ -210,10 +228,14 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
     end
 
     context 'caching behaviour' do
+      # Force factory objects to be evaluated before the it block sets up cache mocks.
+      # build(:variant) internally calls Rails.cache.fetch('default_store'); memoizing
+      # here ensures that call completes before any stub is installed.
+      before { [variant, content] }
+
       it 'uses Rails.cache with a 10-minute expiry' do
-        allow(Rails.cache).to receive(:fetch).and_call_original
         expect(Rails.cache).to receive(:fetch).with(
-          a_string_starting_with('spree_dhl/rates/'),
+          a_string_starting_with('spree_dhlx/rates/'),
           expires_in: 10.minutes
         ).and_return(29.99)
 
@@ -221,9 +243,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
 
       it 'skips the client call on a cache hit' do
-        allow(Rails.cache).to receive(:fetch).and_call_original
         allow(Rails.cache).to receive(:fetch).with(
-          a_string_starting_with('spree_dhl/rates/'),
+          a_string_starting_with('spree_dhlx/rates/'),
           expires_in: 10.minutes
         ).and_return(29.99)
 

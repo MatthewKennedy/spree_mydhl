@@ -104,15 +104,19 @@ module SpreeDhl
         length:                     @length.round(2),
         width:                      @width.round(2),
         height:                     @height.round(2),
-        plannedShippingDateAndTime: planned_shipping_date,
+        plannedShippingDate:        planned_shipping_date,
         unitOfMeasurement:          @unit_of_measurement,
         isCustomsDeclarable:        is_customs_declarable,
-        nextBusinessDay:            false
+        nextBusinessDay:            false,
+        requestedCurrencyCode:      @currency
       }
     end
 
     def planned_shipping_date
-      Time.now.utc.strftime('%Y-%m-%dT%H:%M:%S GMT+00:00')
+      date = Date.today
+      date += 1 if date.saturday?
+      date += 2 if date.sunday?
+      date.iso8601
     end
   end
 end

@@ -1,6 +1,8 @@
 # Uncomment lines below to add your own custom business logic
 # such as promotions, shipping methods, etc.
 Rails.application.config.after_initialize do
+  Spree.calculators.shipping_methods << Spree::Calculator::Shipping::DhlExpress
+
   # Spree.shipping_methods << Spree::ShippingMethods::SuperExpensiveNotVeryFastShipping
   # Spree.payment_methods << Spree::PaymentMethods::VerySafeAndReliablePaymentMethod
 

@@ -96,23 +96,23 @@ By default, `isCustomsDeclarable` is set to `true` whenever the origin and desti
 Version 0.1.0 renamed the credential preferences from `username`/`password` to `api_key`/`api_secret`. Run the bundled migration to update any existing shipping method configurations:
 
 ```bash
-bundle exec rails db:migrate
+    bundle exec rails db:migrate
 ```
 
 ## Development
 
 ```bash
-bundle update
-bundle exec rake test_app
-bundle exec rspec
-bundle exec rubocop
+    bundle update
+    bundle exec rake test_app
+    bundle exec rspec
+    bundle exec rubocop
 ```
 
 ## Releasing
 
 ```bash
-bundle exec gem bump -p -t
-bundle exec gem release
+    bundle exec gem bump -p -t
+    bundle exec gem release
 ```
 
 ## License

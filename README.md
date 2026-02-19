@@ -22,15 +22,15 @@ A [Spree Commerce](https://spreecommerce.org) extension that adds MyDHL as a rea
 
 1. Add the gem to your Gemfile:
 
-    ```ruby
+```ruby
     bundle add spree_mydhl
-    ```
+```
 
 2. Run the install generator:
 
-    ```bash
+```bash
     bundle exec rails g spree_mydhl:install
-    ```
+```
 
 3. Restart your server.
 
@@ -103,15 +103,15 @@ bundle exec rails db:migrate
 
 ```bash
 bundle update
-bundle exec rake test_app   # generate the spec/dummy Rails app
-bundle exec rspec           # run the test suite
-bundle exec rubocop         # lint
+bundle exec rake test_app
+bundle exec rspec
+bundle exec rubocop
 ```
 
 ## Releasing
 
 ```bash
-bundle exec gem bump -p -t  # bump patch version and tag
+bundle exec gem bump -p -t
 bundle exec gem release
 ```
 

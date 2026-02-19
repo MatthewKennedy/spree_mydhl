@@ -100,8 +100,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         calculator.preferred_origin_city_name = ''
       end
 
-      it 'returns false' do
-        expect(calculator.available?(package)).to be false
+      it 'returns true (city name is optional)' do
+        expect(calculator.available?(package)).to be true
       end
     end
 
@@ -236,6 +236,26 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
         calculator.compute_package(package)
       end
+
+      it 'passes next_business_day preference to the client' do
+        calculator.preferred_next_business_day = true
+
+        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+          hash_including(next_business_day: true)
+        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+
+        calculator.compute_package(package)
+      end
+
+      it 'passes customs_declarable preference to the client when set' do
+        calculator.preferred_customs_declarable = false
+
+        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+          hash_including(customs_declarable: false)
+        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+
+        calculator.compute_package(package)
+      end
     end
 
     context 'when the client returns nil (API error)' do
@@ -267,10 +287,11 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       # here ensures that call completes before any stub is installed.
       before { [variant, content] }
 
-      it 'uses Rails.cache with a 10-minute expiry' do
+      it 'uses Rails.cache with a 10-minute expiry and skip_nil' do
         expect(Rails.cache).to receive(:fetch).with(
           a_string_starting_with('spree_dhlx/rates/'),
-          expires_in: 10.minutes
+          expires_in: 10.minutes,
+          skip_nil:   true
         ).and_return(29.99)
 
         expect(calculator.compute_package(package)).to eq(29.99)
@@ -279,7 +300,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       it 'skips the client call on a cache hit' do
         allow(Rails.cache).to receive(:fetch).with(
           a_string_starting_with('spree_dhlx/rates/'),
-          expires_in: 10.minutes
+          expires_in: 10.minutes,
+          skip_nil:   true
         ).and_return(29.99)
 
         expect(SpreeDhl::DhlExpressClient).not_to receive(:new)

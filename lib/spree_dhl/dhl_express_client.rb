@@ -14,7 +14,8 @@ module SpreeDhl
                    origin_postal_code:, origin_city_name:, destination_country_code:,
                    destination_postal_code:, destination_city_name:, weight:,
                    length:, width:, height:, unit_of_measurement: 'metric',
-                   currency: 'USD', sandbox: false)
+                   currency: 'USD', sandbox: false, next_business_day: false,
+                   customs_declarable: nil)
       @username                 = username
       @password                 = password
       @account_number           = account_number
@@ -31,6 +32,8 @@ module SpreeDhl
       @unit_of_measurement      = unit_of_measurement
       @currency                 = currency
       @sandbox                  = sandbox
+      @next_business_day        = next_business_day
+      @customs_declarable       = customs_declarable
     end
 
     def cheapest_rate
@@ -85,12 +88,11 @@ module SpreeDhl
       request = Net::HTTP::Get.new(uri)
       request['Authorization'] = "Basic #{Base64.strict_encode64("#{@username}:#{@password}")}"
       request['Accept']        = 'application/json'
+      request['User-Agent']    = "spree_dhl/#{SpreeDhl::VERSION}"
       request
     end
 
     def query_params
-      is_customs_declarable = @origin_country_code.upcase != @destination_country_code.upcase
-
       {
         accountNumber:              @account_number,
         originCountryCode:          @origin_country_code,
@@ -105,10 +107,16 @@ module SpreeDhl
         height:                     @height.round(2),
         plannedShippingDate:        planned_shipping_date,
         unitOfMeasurement:          @unit_of_measurement,
-        isCustomsDeclarable:        is_customs_declarable,
-        nextBusinessDay:            false,
+        isCustomsDeclarable:        customs_declarable?,
+        nextBusinessDay:            @next_business_day,
         requestedCurrencyCode:      @currency
       }
+    end
+
+    def customs_declarable?
+      return @customs_declarable unless @customs_declarable.nil?
+
+      @origin_country_code.upcase != @destination_country_code.upcase
     end
 
     def planned_shipping_date

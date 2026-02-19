@@ -229,6 +229,12 @@ RSpec.describe SpreeDhl::DhlExpressClient do
           .with(headers: { 'Content-Type' => 'application/json' })
       end
 
+      it 'sends a User-Agent header identifying the gem' do
+        client.cheapest_rate
+        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/)
+          .with(headers: { 'User-Agent' => "spree_dhl/#{SpreeDhl::VERSION}" })
+      end
+
       it 'includes required query parameters' do
         client.cheapest_rate
         expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
@@ -243,8 +249,57 @@ RSpec.describe SpreeDhl::DhlExpressClient do
         )
       end
 
-      it 'sets isCustomsDeclarable to true for international shipments' do
+      it 'sets isCustomsDeclarable to true for international shipments (auto-detected)' do
         client.cheapest_rate
+        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
+          query: hash_including('isCustomsDeclarable' => 'true')
+        )
+      end
+
+      it 'sets nextBusinessDay to false by default' do
+        client.cheapest_rate
+        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
+          query: hash_including('nextBusinessDay' => 'false')
+        )
+      end
+    end
+
+    context 'with next_business_day: true' do
+      subject(:nbd_client) do
+        described_class.new(
+          username: 'u', password: 'p', account_number: '123',
+          origin_country_code: 'US', origin_postal_code: '10001', origin_city_name: 'NY',
+          destination_country_code: 'DE', destination_postal_code: '10115', destination_city_name: 'Berlin',
+          weight: 1.0, length: 10.0, width: 5.0, height: 3.0,
+          sandbox: true, next_business_day: true
+        )
+      end
+
+      before { stub_dhl_api }
+
+      it 'sends nextBusinessDay=true' do
+        nbd_client.cheapest_rate
+        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
+          query: hash_including('nextBusinessDay' => 'true')
+        )
+      end
+    end
+
+    context 'with customs_declarable override' do
+      subject(:domestic_client) do
+        described_class.new(
+          username: 'u', password: 'p', account_number: '123',
+          origin_country_code: 'US', origin_postal_code: '10001', origin_city_name: 'NY',
+          destination_country_code: 'US', destination_postal_code: '90210', destination_city_name: 'LA',
+          weight: 1.0, length: 10.0, width: 5.0, height: 3.0,
+          sandbox: true, customs_declarable: true
+        )
+      end
+
+      before { stub_dhl_api }
+
+      it 'uses the explicit value instead of auto-detecting from country codes' do
+        domestic_client.cheapest_rate
         expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
           query: hash_including('isCustomsDeclarable' => 'true')
         )

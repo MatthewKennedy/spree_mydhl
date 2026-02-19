@@ -1,17 +1,19 @@
 module Spree
   module Calculator::Shipping
     class DhlExpress < ShippingCalculator
+      UNIT_OF_MEASUREMENT_OPTIONS = %w[metric imperial].freeze
+
       preference :username,            :string
       preference :password,            :password
       preference :account_number,      :string
       preference :origin_country_code, :string
       preference :origin_postal_code,  :string
       preference :origin_city_name,    :string
-      UNIT_OF_MEASUREMENT_OPTIONS = %w[metric imperial].freeze
-
-      preference :unit_of_measurement, :string, default: UNIT_OF_MEASUREMENT_OPTIONS.first
-      preference :currency,            :string, default: -> { Spree::Store.default.default_currency }
+      preference :unit_of_measurement, :string,  default: UNIT_OF_MEASUREMENT_OPTIONS.first
+      preference :currency,            :string,  default: -> { Spree::Store.default.default_currency }
       preference :sandbox,             :boolean, default: false
+      preference :next_business_day,   :boolean, default: false
+      preference :customs_declarable,  :boolean, default: nil, nullable: true
       preference :minimum_weight,      :decimal, default: nil, nullable: true
       preference :maximum_weight,      :decimal, default: nil, nullable: true
 
@@ -65,7 +67,7 @@ module Spree
         currency  = effective_currency(package)
         cache_key = build_cache_key(dest_country, dest_postal, dest_city, weight, dimensions, currency)
 
-        rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes) do
+        rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes, skip_nil: true) do
           client = SpreeDhl::DhlExpressClient.new(
             username:                 preferred_username,
             password:                 preferred_password,
@@ -82,7 +84,9 @@ module Spree
             height:                   dimensions[:height],
             unit_of_measurement:      preferred_unit_of_measurement,
             currency:                 currency,
-            sandbox:                  preferred_sandbox
+            sandbox:                  preferred_sandbox,
+            next_business_day:        preferred_next_business_day,
+            customs_declarable:       preferred_customs_declarable
           )
           client.cheapest_rate
         end
@@ -102,8 +106,7 @@ module Spree
           preferred_password,
           preferred_account_number,
           preferred_origin_country_code,
-          preferred_origin_postal_code,
-          preferred_origin_city_name
+          preferred_origin_postal_code
         ].any?(&:blank?)
       end
 

@@ -4,8 +4,8 @@ require 'webmock/rspec'
 RSpec.describe SpreeDhl::DhlExpressClient do
   subject(:client) do
     described_class.new(
-      username:                 'testuser',
-      password:                 'testpass',
+      api_key:                  'testuser',
+      api_secret:               'testpass',
       account_number:           '123456789',
       origin_country_code:      'US',
       origin_postal_code:       '10001',
@@ -38,7 +38,7 @@ RSpec.describe SpreeDhl::DhlExpressClient do
         },
         {
           productCode: 'D',
-          productName: 'EXPRESS WORLDWIDE',
+          productName: 'EXPRESS WORLDWIDE DOC',
           totalPrice: [
             { currencyType: 'PULC', price: 20.00 },
             { currencyType: 'BILLC', price: 38.50 }
@@ -51,6 +51,17 @@ RSpec.describe SpreeDhl::DhlExpressClient do
   def stub_dhl_api(status: 200, body: successful_response_body)
     stub_request(:get, /express\.api\.dhl\.com/)
       .to_return(status: status, body: body, headers: { 'Content-Type' => 'application/json' })
+  end
+
+  def build_client(**overrides)
+    described_class.new(
+      api_key: 'u', api_secret: 'p', account_number: '123',
+      origin_country_code: 'US', origin_postal_code: '10001', origin_city_name: 'NY',
+      destination_country_code: 'DE', destination_postal_code: '10115', destination_city_name: 'Berlin',
+      weight: 1.0, length: 10.0, width: 5.0, height: 3.0,
+      sandbox: true,
+      **overrides
+    )
   end
 
   describe '#cheapest_rate' do
@@ -112,6 +123,35 @@ RSpec.describe SpreeDhl::DhlExpressClient do
       end
     end
 
+    context 'with product_code filter' do
+      before { stub_dhl_api }
+
+      context 'when the product code matches one product' do
+        subject(:filtered_client) { build_client(product_code: 'P') }
+
+        it 'returns only that product\'s BILLC rate, not the overall minimum' do
+          # P is 45.00, D is 38.50 — without filter min would be 38.50
+          expect(filtered_client.cheapest_rate).to eq(45.00)
+        end
+      end
+
+      context 'when no product matches the code' do
+        subject(:unmatched_client) { build_client(product_code: 'K') }
+
+        it 'returns nil' do
+          expect(unmatched_client.cheapest_rate).to be_nil
+        end
+      end
+
+      context 'when product_code is nil (no filter)' do
+        subject(:unfiltered_client) { build_client(product_code: nil) }
+
+        it 'returns the overall minimum across all products' do
+          expect(unfiltered_client.cheapest_rate).to eq(38.50)
+        end
+      end
+    end
+
     context 'with a 401 Unauthorized response' do
       before { stub_dhl_api(status: 401, body: '{"detail":"Unauthorized"}') }
 
@@ -134,6 +174,20 @@ RSpec.describe SpreeDhl::DhlExpressClient do
 
       it 'logs an error' do
         expect(Rails.logger).to receive(:error).with(/DHL API error.*500/)
+        client.cheapest_rate
+      end
+    end
+
+    context 'with a very long error response body' do
+      let(:long_body) { 'e' * 1000 }
+
+      before { stub_dhl_api(status: 500, body: long_body) }
+
+      it 'truncates the body to 200 characters in the error log' do
+        expect(Rails.logger).to receive(:error) do |message|
+          expect(message).to include('500')
+          expect(message).not_to include('e' * 201)
+        end
         client.cheapest_rate
       end
     end
@@ -168,8 +222,8 @@ RSpec.describe SpreeDhl::DhlExpressClient do
     context 'using production URL when sandbox is false' do
       subject(:prod_client) do
         described_class.new(
-          username:                 'testuser',
-          password:                 'testpass',
+          api_key:                  'testuser',
+          api_secret:               'testpass',
           account_number:           '123456789',
           origin_country_code:      'US',
           origin_postal_code:       '10001',
@@ -249,7 +303,7 @@ RSpec.describe SpreeDhl::DhlExpressClient do
     context 'with customs_declarable override' do
       subject(:domestic_client) do
         described_class.new(
-          username: 'u', password: 'p', account_number: '123',
+          api_key: 'u', api_secret: 'p', account_number: '123',
           origin_country_code: 'US', origin_postal_code: '10001', origin_city_name: 'NY',
           destination_country_code: 'US', destination_postal_code: '90210', destination_city_name: 'LA',
           weight: 1.0, length: 10.0, width: 5.0, height: 3.0,

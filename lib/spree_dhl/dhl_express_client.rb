@@ -10,13 +10,14 @@ module SpreeDhl
     PRODUCTION_BASE_URL = 'https://express.api.dhl.com/mydhlapi'.freeze
     SANDBOX_BASE_URL    = 'https://express.api.dhl.com/mydhlapi/test'.freeze
 
-    def initialize(username:, password:, account_number:, origin_country_code:,
+    def initialize(api_key:, api_secret:, account_number:, origin_country_code:,
                    origin_postal_code:, origin_city_name:, destination_country_code:,
                    destination_postal_code:, destination_city_name:, weight:,
                    length:, width:, height:, unit_of_measurement: 'metric',
-                   currency: 'USD', sandbox: false, customs_declarable: nil)
-      @username                 = username
-      @password                 = password
+                   currency: 'USD', sandbox: false, product_code: nil,
+                   customs_declarable: nil)
+      @api_key                  = api_key
+      @api_secret               = api_secret
       @account_number           = account_number
       @origin_country_code      = origin_country_code
       @origin_postal_code       = origin_postal_code
@@ -31,6 +32,7 @@ module SpreeDhl
       @unit_of_measurement      = unit_of_measurement
       @currency                 = currency
       @sandbox                  = sandbox
+      @product_code             = product_code
       @customs_declarable       = customs_declarable
     end
 
@@ -40,6 +42,11 @@ module SpreeDhl
 
       products = data['products']
       return nil if products.nil? || products.empty?
+
+      if @product_code.present?
+        products = products.select { |p| p['productCode'] == @product_code }
+        return nil if products.empty?
+      end
 
       prices = products.filter_map do |product|
         total_prices = product['totalPrice']
@@ -63,15 +70,17 @@ module SpreeDhl
       end
 
       unless response.is_a?(Net::HTTPSuccess)
-        raise ApiError, "DHL API returned HTTP #{response.code}: #{response.body}"
+        raise ApiError, "DHL API returned HTTP #{response.code}: #{response.body.to_s[0, 200]}"
       end
 
       JSON.parse(response.body)
     rescue ApiError => e
       Rails.logger.error("[SpreeDhl] DHL API error: #{e.message}")
+      Rails.logger.debug { Array(e.backtrace).first(5).join("\n") }
       nil
     rescue StandardError => e
       Rails.logger.error("[SpreeDhl] DHL request failed: #{e.class}: #{e.message}")
+      Rails.logger.debug { Array(e.backtrace).first(5).join("\n") }
       nil
     end
 
@@ -84,7 +93,7 @@ module SpreeDhl
 
     def build_request(uri)
       request = Net::HTTP::Get.new(uri)
-      request['Authorization'] = "Basic #{Base64.strict_encode64("#{@username}:#{@password}")}"
+      request['Authorization'] = "Basic #{Base64.strict_encode64("#{@api_key}:#{@api_secret}")}"
       request['Accept']        = 'application/json'
       request['User-Agent']    = "spree_dhl/#{SpreeDhl::VERSION}"
       request

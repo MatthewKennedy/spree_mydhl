@@ -15,6 +15,14 @@ module Spree
               form.select("preferred_#{key}", options, {}, class: 'form-select form-control')
           end
 
+        when :product_code
+          content_tag(:div, class: 'form-group') do
+            form.label("preferred_#{key}", Spree.t(:product_code)) +
+              form.select("preferred_#{key}", Spree::Calculator::Shipping::DhlExpress::PRODUCT_CODE_OPTIONS,
+                          { include_blank: false },
+                          class: 'form-select form-control')
+          end
+
         when :stock_location_id
           stock_locations = Spree::StockLocation.active.order(:name).pluck(:name, :id)
 

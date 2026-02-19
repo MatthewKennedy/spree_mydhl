@@ -3,13 +3,26 @@ module Spree
     class DhlExpress < ShippingCalculator
       UNIT_OF_MEASUREMENT_OPTIONS = %w[metric imperial].freeze
 
-      preference :username,            :string
-      preference :password,            :password
+      PRODUCT_CODE_OPTIONS = [
+        ['Any (cheapest)',            nil],
+        ['P — Express Worldwide',     'P'],
+        ['D — Express Worldwide Doc', 'D'],
+        ['K — Express 9:00',          'K'],
+        ['W — Express 10:30',         'W'],
+        ['T — Express 12:00',         'T'],
+        ['Y — Express 12:00 Doc',     'Y'],
+        ['H — Economy Select',        'H'],
+        ['N — Domestic Express',      'N']
+      ].freeze
+
+      preference :api_key,             :string
+      preference :api_secret,          :password
       preference :account_number,      :string
       preference :stock_location_id,   :integer
       preference :unit_of_measurement, :string,  default: UNIT_OF_MEASUREMENT_OPTIONS.first
       preference :currency,            :string,  default: -> { Spree::Store.default.default_currency }
       preference :sandbox,             :boolean, default: false
+      preference :product_code,        :string,  default: nil, nullable: true
       preference :customs_declarable,  :boolean, default: nil, nullable: true
       preference :minimum_weight,      :decimal, default: nil, nullable: true
       preference :maximum_weight,      :decimal, default: nil, nullable: true
@@ -21,6 +34,12 @@ module Spree
       def available?(package)
         if required_preferences_blank?
           Rails.logger.debug('[SpreeDhl] available? = false: one or more required preferences are blank')
+          return false
+        end
+
+        if preferred_minimum_weight.present? && preferred_maximum_weight.present? &&
+           preferred_minimum_weight.to_f > preferred_maximum_weight.to_f
+          Rails.logger.warn('[SpreeDhl] minimum_weight exceeds maximum_weight — no package can qualify; check shipping method configuration')
           return false
         end
 
@@ -61,7 +80,11 @@ module Spree
 
         stock_location = package.stock_location
         origin_country = stock_location.country_iso
-        return nil if origin_country.blank?
+
+        if origin_country.blank?
+          Rails.logger.debug('[SpreeDhl] compute_package -> nil: stock location has no country ISO')
+          return nil
+        end
 
         origin_postal = stock_location.zipcode.to_s
         origin_city   = stock_location.city.to_s
@@ -78,8 +101,8 @@ module Spree
 
         rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes, skip_nil: true) do
           client = SpreeDhl::DhlExpressClient.new(
-            username:                 preferred_username,
-            password:                 preferred_password,
+            api_key:                  preferred_api_key,
+            api_secret:               preferred_api_secret,
             account_number:           preferred_account_number,
             origin_country_code:      origin_country,
             origin_postal_code:       origin_postal,
@@ -94,6 +117,7 @@ module Spree
             unit_of_measurement:      preferred_unit_of_measurement,
             currency:                 currency,
             sandbox:                  preferred_sandbox,
+            product_code:             preferred_product_code,
             customs_declarable:       preferred_customs_declarable
           )
           client.cheapest_rate
@@ -103,6 +127,7 @@ module Spree
         rate
       rescue StandardError => e
         Rails.logger.error("[SpreeDhl] compute_package failed: #{e.class}: #{e.message}")
+        Rails.logger.debug { Array(e.backtrace).first(5).join("\n") }
         nil
       end
 
@@ -110,8 +135,8 @@ module Spree
 
       def required_preferences_blank?
         [
-          preferred_username,
-          preferred_password,
+          preferred_api_key,
+          preferred_api_secret,
           preferred_account_number,
           preferred_stock_location_id
         ].any?(&:blank?)
@@ -122,6 +147,10 @@ module Spree
         weight.positive? ? weight.to_f : 0.1
       end
 
+      # Computes package dimensions from variant attributes.
+      # Variant depth/width/height and package weight must be stored in units that
+      # match the configured unit_of_measurement preference (metric: cm/kg, imperial: in/lb).
+      # No automatic unit conversion is applied.
       def package_dimensions(package)
         max_length   = 0.0
         max_width    = 0.0
@@ -143,7 +172,7 @@ module Spree
       end
 
       def effective_currency(package)
-        preferred_currency.presence || package.order.currency || Spree::Config.currency
+        preferred_currency.presence || package.order.currency || package.order.store&.default_currency
       end
 
       def build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
@@ -153,6 +182,7 @@ module Spree
           preferred_account_number,
           preferred_stock_location_id,
           preferred_unit_of_measurement,
+          preferred_product_code,
           origin_country,
           origin_postal,
           dest_country,

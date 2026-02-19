@@ -14,6 +14,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
   let(:dest_country) { build(:country, iso: 'DE') }
   let(:address)      { build(:address, country: dest_country, zipcode: '10115', city: 'Berlin') }
+  let(:store)        { instance_double(Spree::Store, default_currency: 'EUR') }
   let(:order)        { build(:order, ship_address: address, currency: 'USD') }
   let(:variant)      { build(:variant, depth: 10.0, width: 5.0, height: 3.0, weight: 1.0) }
   let(:content)      { instance_double(Spree::Stock::ContentItem, variant: variant, quantity: 1) }
@@ -26,8 +27,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
   end
 
   def set_required_preferences(calc = calculator)
-    calc.preferred_username          = 'testuser'
-    calc.preferred_password          = 'testpass'
+    calc.preferred_api_key           = 'testuser'
+    calc.preferred_api_secret        = 'testpass'
     calc.preferred_account_number    = '123456789'
     calc.preferred_stock_location_id = 1
   end
@@ -47,10 +48,10 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
     end
 
-    context 'when username is blank' do
+    context 'when api_key is blank' do
       before do
         set_required_preferences
-        calculator.preferred_username = ''
+        calculator.preferred_api_key = ''
       end
 
       it 'returns false' do
@@ -58,10 +59,10 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
     end
 
-    context 'when password is blank' do
+    context 'when api_secret is blank' do
       before do
         set_required_preferences
-        calculator.preferred_password = nil
+        calculator.preferred_api_secret = nil
       end
 
       it 'returns false' do
@@ -88,6 +89,23 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
       it 'returns false' do
         expect(calculator.available?(package)).to be false
+      end
+    end
+
+    context 'when minimum_weight exceeds maximum_weight' do
+      before do
+        set_required_preferences
+        calculator.preferred_minimum_weight = 5.0
+        calculator.preferred_maximum_weight = 2.0
+      end
+
+      it 'returns false' do
+        expect(calculator.available?(package)).to be false
+      end
+
+      it 'logs a warning about the misconfiguration' do
+        expect(Rails.logger).to receive(:warn).with(/minimum_weight exceeds maximum_weight/)
+        calculator.available?(package)
       end
     end
 
@@ -193,7 +211,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
     before { set_required_preferences }
 
     context 'when available? returns false' do
-      before { calculator.preferred_username = '' }
+      before { calculator.preferred_api_key = '' }
 
       it 'returns nil without calling the client' do
         expect(SpreeDhl::DhlExpressClient).not_to receive(:new)
@@ -227,8 +245,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       it 'passes credentials to the client' do
         expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
           hash_including(
-            username:       'testuser',
-            password:       'testpass',
+            api_key:        'testuser',
+            api_secret:     'testpass',
             account_number: '123456789'
           )
         ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
@@ -266,6 +284,28 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         calculator.compute_package(package)
       end
 
+      it 'falls back to the order store currency when order has no currency' do
+        calculator.preferred_currency = nil
+        allow(order).to receive(:currency).and_return(nil)
+        allow(order).to receive(:store).and_return(store)
+
+        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+          hash_including(currency: 'EUR')
+        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+
+        calculator.compute_package(package)
+      end
+
+      it 'passes the product_code preference to the client when set' do
+        calculator.preferred_product_code = 'P'
+
+        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+          hash_including(product_code: 'P')
+        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+
+        calculator.compute_package(package)
+      end
+
       it 'passes customs_declarable preference to the client when set' do
         calculator.preferred_customs_declarable = false
 
@@ -290,6 +330,12 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         expect(SpreeDhl::DhlExpressClient).not_to receive(:new)
         expect(calculator.compute_package(package)).to be_nil
       end
+
+      it 'logs a debug message' do
+        allow(Rails.logger).to receive(:debug)
+        expect(Rails.logger).to receive(:debug).with(/stock location has no country ISO/)
+        calculator.compute_package(package)
+      end
     end
 
     context 'when the client returns nil (API error)' do
@@ -312,6 +358,11 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
       it 'returns nil and does not propagate the error' do
         expect(calculator.compute_package(package)).to be_nil
+      end
+
+      it 'logs the error' do
+        expect(Rails.logger).to receive(:error).with(/compute_package failed.*network down/)
+        calculator.compute_package(package)
       end
     end
 

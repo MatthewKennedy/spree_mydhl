@@ -196,24 +196,6 @@ RSpec.describe SpreeDhl::DhlExpressClient do
       end
     end
 
-    context 'planned shipping date' do
-      before { stub_dhl_api }
-
-      it 'skips to Monday when today is Saturday' do
-        allow(Date).to receive(:today).and_return(Date.new(2026, 2, 21)) # Saturday
-        client.cheapest_rate
-        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/)
-          .with(query: hash_including('plannedShippingDate' => '2026-02-23'))
-      end
-
-      it 'skips to Monday when today is Sunday' do
-        allow(Date).to receive(:today).and_return(Date.new(2026, 2, 22)) # Sunday
-        client.cheapest_rate
-        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/)
-          .with(query: hash_including('plannedShippingDate' => '2026-02-23'))
-      end
-    end
-
     context 'request structure' do
       before { stub_dhl_api }
 
@@ -256,29 +238,8 @@ RSpec.describe SpreeDhl::DhlExpressClient do
         )
       end
 
-      it 'sets nextBusinessDay to false by default' do
+      it 'always sets nextBusinessDay to true' do
         client.cheapest_rate
-        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
-          query: hash_including('nextBusinessDay' => 'false')
-        )
-      end
-    end
-
-    context 'with next_business_day: true' do
-      subject(:nbd_client) do
-        described_class.new(
-          username: 'u', password: 'p', account_number: '123',
-          origin_country_code: 'US', origin_postal_code: '10001', origin_city_name: 'NY',
-          destination_country_code: 'DE', destination_postal_code: '10115', destination_city_name: 'Berlin',
-          weight: 1.0, length: 10.0, width: 5.0, height: 3.0,
-          sandbox: true, next_business_day: true
-        )
-      end
-
-      before { stub_dhl_api }
-
-      it 'sends nextBusinessDay=true' do
-        nbd_client.cheapest_rate
         expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
           query: hash_including('nextBusinessDay' => 'true')
         )

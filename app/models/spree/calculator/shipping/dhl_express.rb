@@ -12,7 +12,6 @@ module Spree
       preference :unit_of_measurement, :string,  default: UNIT_OF_MEASUREMENT_OPTIONS.first
       preference :currency,            :string,  default: -> { Spree::Store.default.default_currency }
       preference :sandbox,             :boolean, default: false
-      preference :next_business_day,   :boolean, default: false
       preference :customs_declarable,  :boolean, default: nil, nullable: true
       preference :minimum_weight,      :decimal, default: nil, nullable: true
       preference :maximum_weight,      :decimal, default: nil, nullable: true
@@ -85,7 +84,6 @@ module Spree
             unit_of_measurement:      preferred_unit_of_measurement,
             currency:                 currency,
             sandbox:                  preferred_sandbox,
-            next_business_day:        preferred_next_business_day,
             customs_declarable:       preferred_customs_declarable
           )
           client.cheapest_rate

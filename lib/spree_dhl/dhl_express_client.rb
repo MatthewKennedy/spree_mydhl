@@ -14,8 +14,7 @@ module SpreeDhl
                    origin_postal_code:, origin_city_name:, destination_country_code:,
                    destination_postal_code:, destination_city_name:, weight:,
                    length:, width:, height:, unit_of_measurement: 'metric',
-                   currency: 'USD', sandbox: false, next_business_day: false,
-                   customs_declarable: nil)
+                   currency: 'USD', sandbox: false, customs_declarable: nil)
       @username                 = username
       @password                 = password
       @account_number           = account_number
@@ -32,7 +31,6 @@ module SpreeDhl
       @unit_of_measurement      = unit_of_measurement
       @currency                 = currency
       @sandbox                  = sandbox
-      @next_business_day        = next_business_day
       @customs_declarable       = customs_declarable
     end
 
@@ -108,7 +106,7 @@ module SpreeDhl
         plannedShippingDate:        planned_shipping_date,
         unitOfMeasurement:          @unit_of_measurement,
         isCustomsDeclarable:        customs_declarable?,
-        nextBusinessDay:            @next_business_day,
+        nextBusinessDay:            true,
         requestedCurrencyCode:      @currency
       }
     end
@@ -120,10 +118,7 @@ module SpreeDhl
     end
 
     def planned_shipping_date
-      date = Date.today
-      date += 2 if date.saturday?
-      date += 1 if date.sunday?
-      date.iso8601
+      Date.today.iso8601
     end
   end
 end

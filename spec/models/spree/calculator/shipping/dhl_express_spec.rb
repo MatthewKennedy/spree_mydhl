@@ -237,16 +237,6 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         calculator.compute_package(package)
       end
 
-      it 'passes next_business_day preference to the client' do
-        calculator.preferred_next_business_day = true
-
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
-          hash_including(next_business_day: true)
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
-
-        calculator.compute_package(package)
-      end
-
       it 'passes customs_declarable preference to the client when set' do
         calculator.preferred_customs_declarable = false
 

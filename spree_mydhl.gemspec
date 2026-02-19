@@ -8,7 +8,8 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.name        = 'spree_mydhl'
   s.version     = SpreeMydhl::VERSION
-  s.summary     = "Spree Commerce Dhl Extension"
+  s.summary     = 'Spree Commerce MyDHL Extension providing live shipping rates at checkout'
+
   s.required_ruby_version = '>= 3.2'
 
   s.author    = 'Matthew Kennedy'

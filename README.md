@@ -23,13 +23,13 @@ A [Spree Commerce](https://spreecommerce.org) extension that adds MyDHL as a rea
 1. Add the gem to your Gemfile:
 
 ```ruby
-    bundle add spree_mydhl
+bundle add spree_mydhl
 ```
 
 2. Run the install generator:
 
 ```bash
-    bundle exec rails g spree_mydhl:install
+bundle exec rails g spree_mydhl:install
 ```
 
 3. Restart your server.
@@ -96,23 +96,23 @@ By default, `isCustomsDeclarable` is set to `true` whenever the origin and desti
 Version 0.1.0 renamed the credential preferences from `username`/`password` to `api_key`/`api_secret`. Run the bundled migration to update any existing shipping method configurations:
 
 ```bash
-    bundle exec rails db:migrate
+bundle exec rails db:migrate
 ```
 
 ## Development
 
 ```bash
-    bundle update
-    bundle exec rake test_app
-    bundle exec rspec
-    bundle exec rubocop
+bundle update
+bundle exec rake test_app
+bundle exec rspec
+bundle exec rubocop
 ```
 
 ## Releasing
 
 ```bash
-    bundle exec gem bump -p -t
-    bundle exec gem release
+bundle exec gem bump -p -t
+bundle exec gem release
 ```
 
 ## License

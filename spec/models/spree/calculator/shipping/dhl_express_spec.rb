@@ -3,25 +3,33 @@ require 'spec_helper'
 RSpec.describe Spree::Calculator::Shipping::DhlExpress do
   subject(:calculator) { described_class.new }
 
-  let(:country) { build(:country, iso: 'DE') }
-  let(:address) { build(:address, country: country, zipcode: '10115', city: 'Berlin') }
-  let(:order)   { build(:order, ship_address: address, currency: 'USD') }
-  let(:variant) { build(:variant, depth: 10.0, width: 5.0, height: 3.0, weight: 1.0) }
-  let(:content) { instance_double(Spree::Stock::ContentItem, variant: variant, quantity: 1) }
+  let(:origin_country)  { build(:country, iso: 'US') }
+  let(:stock_location) do
+    instance_double(Spree::StockLocation,
+                    id:          1,
+                    country_iso: 'US',
+                    zipcode:     '10001',
+                    city:        'New York')
+  end
+
+  let(:dest_country) { build(:country, iso: 'DE') }
+  let(:address)      { build(:address, country: dest_country, zipcode: '10115', city: 'Berlin') }
+  let(:order)        { build(:order, ship_address: address, currency: 'USD') }
+  let(:variant)      { build(:variant, depth: 10.0, width: 5.0, height: 3.0, weight: 1.0) }
+  let(:content)      { instance_double(Spree::Stock::ContentItem, variant: variant, quantity: 1) }
   let(:package) do
     instance_double(Spree::Stock::Package,
-                    order:    order,
-                    weight:   1.5,
-                    contents: [content])
+                    order:          order,
+                    weight:         1.5,
+                    contents:       [content],
+                    stock_location: stock_location)
   end
 
   def set_required_preferences(calc = calculator)
-    calc.preferred_username            = 'testuser'
-    calc.preferred_password            = 'testpass'
-    calc.preferred_account_number      = '123456789'
-    calc.preferred_origin_country_code = 'US'
-    calc.preferred_origin_postal_code  = '10001'
-    calc.preferred_origin_city_name    = 'New York'
+    calc.preferred_username          = 'testuser'
+    calc.preferred_password          = 'testpass'
+    calc.preferred_account_number    = '123456789'
+    calc.preferred_stock_location_id = 1
   end
 
   describe '.description' do
@@ -72,10 +80,10 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
     end
 
-    context 'when origin_country_code is blank' do
+    context 'when stock_location_id is blank' do
       before do
         set_required_preferences
-        calculator.preferred_origin_country_code = ''
+        calculator.preferred_stock_location_id = nil
       end
 
       it 'returns false' do
@@ -83,25 +91,36 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
     end
 
-    context 'when origin_postal_code is blank' do
-      before do
-        set_required_preferences
-        calculator.preferred_origin_postal_code = ''
+    context 'when package is from a different stock location' do
+      let(:other_stock_location) { instance_double(Spree::StockLocation, id: 99) }
+      let(:other_package) do
+        instance_double(Spree::Stock::Package,
+                        order:          order,
+                        weight:         1.5,
+                        contents:       [content],
+                        stock_location: other_stock_location)
       end
 
+      before { set_required_preferences }
+
       it 'returns false' do
-        expect(calculator.available?(package)).to be false
+        expect(calculator.available?(other_package)).to be false
       end
     end
 
-    context 'when origin_city_name is blank' do
-      before do
-        set_required_preferences
-        calculator.preferred_origin_city_name = ''
+    context 'when package stock_location is nil' do
+      let(:package_no_location) do
+        instance_double(Spree::Stock::Package,
+                        order:          order,
+                        weight:         1.5,
+                        contents:       [content],
+                        stock_location: nil)
       end
 
-      it 'returns true (city name is optional)' do
-        expect(calculator.available?(package)).to be true
+      before { set_required_preferences }
+
+      it 'returns false' do
+        expect(calculator.available?(package_no_location)).to be false
       end
     end
 
@@ -113,6 +132,25 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
       it 'returns false' do
         expect(calculator.available?(package)).to be false
+      end
+    end
+
+    context 'when ship_address country ISO is blank' do
+      let(:country_no_iso) { build(:country, iso: '') }
+      let(:address_no_iso) { build(:address, country: country_no_iso) }
+      let(:order_no_iso)   { build(:order, ship_address: address_no_iso) }
+      let(:package_no_iso) do
+        instance_double(Spree::Stock::Package,
+                        order:          order_no_iso,
+                        weight:         1.0,
+                        contents:       [],
+                        stock_location: stock_location)
+      end
+
+      before { set_required_preferences }
+
+      it 'returns false' do
+        expect(calculator.available?(package_no_iso)).to be false
       end
     end
 
@@ -149,24 +187,6 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         expect(calculator.available?(package)).to be true
       end
     end
-
-    context 'when ship_address country ISO is blank' do
-      let(:country_no_iso) { build(:country, iso: '') }
-      let(:address_no_iso) { build(:address, country: country_no_iso) }
-      let(:order_no_iso)   { build(:order, ship_address: address_no_iso) }
-      let(:package_no_iso) do
-        instance_double(Spree::Stock::Package,
-                        order:    order_no_iso,
-                        weight:   1.0,
-                        contents: [])
-      end
-
-      before { set_required_preferences }
-
-      it 'returns false' do
-        expect(calculator.available?(package_no_iso)).to be false
-      end
-    end
   end
 
   describe '#compute_package' do
@@ -192,15 +212,24 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         expect(calculator.compute_package(package)).to eq(42.50)
       end
 
-      it 'passes correct origin preferences to the client' do
+      it 'derives origin details from the package stock location' do
         expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
           hash_including(
-            username:            'testuser',
-            password:            'testpass',
-            account_number:      '123456789',
             origin_country_code: 'US',
             origin_postal_code:  '10001',
             origin_city_name:    'New York'
+          )
+        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+
+        calculator.compute_package(package)
+      end
+
+      it 'passes credentials to the client' do
+        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+          hash_including(
+            username:       'testuser',
+            password:       'testpass',
+            account_number: '123456789'
           )
         ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
 
@@ -245,6 +274,21 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
+      end
+    end
+
+    context 'when the stock location has no country ISO' do
+      let(:stock_location) do
+        instance_double(Spree::StockLocation,
+                        id:          1,
+                        country_iso: '',
+                        zipcode:     '10001',
+                        city:        'New York')
+      end
+
+      it 'returns nil without calling the client' do
+        expect(SpreeDhl::DhlExpressClient).not_to receive(:new)
+        expect(calculator.compute_package(package)).to be_nil
       end
     end
 

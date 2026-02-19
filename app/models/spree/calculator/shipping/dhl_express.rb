@@ -6,9 +6,7 @@ module Spree
       preference :username,            :string
       preference :password,            :password
       preference :account_number,      :string
-      preference :origin_country_code, :string
-      preference :origin_postal_code,  :string
-      preference :origin_city_name,    :string
+      preference :stock_location_id,   :integer
       preference :unit_of_measurement, :string,  default: UNIT_OF_MEASUREMENT_OPTIONS.first
       preference :currency,            :string,  default: -> { Spree::Store.default.default_currency }
       preference :sandbox,             :boolean, default: false
@@ -23,6 +21,12 @@ module Spree
       def available?(package)
         if required_preferences_blank?
           Rails.logger.debug('[SpreeDhl] available? = false: one or more required preferences are blank')
+          return false
+        end
+
+        stock_location = package.stock_location
+        if stock_location.nil? || stock_location.id.to_i != preferred_stock_location_id.to_i
+          Rails.logger.debug('[SpreeDhl] available? = false: package stock location does not match configured stock location')
           return false
         end
 
@@ -55,25 +59,31 @@ module Spree
       def compute_package(package)
         return nil unless available?(package)
 
-        destination = package.order.ship_address
-        dest_country  = destination.country.iso
-        dest_postal   = destination.zipcode.to_s
-        dest_city     = destination.city.to_s
+        stock_location = package.stock_location
+        origin_country = stock_location.country_iso
+        return nil if origin_country.blank?
+
+        origin_postal = stock_location.zipcode.to_s
+        origin_city   = stock_location.city.to_s
+
+        destination  = package.order.ship_address
+        dest_country = destination.country.iso
+        dest_postal  = destination.zipcode.to_s
+        dest_city    = destination.city.to_s
 
         weight     = package_weight(package)
         dimensions = package_dimensions(package)
-
-        currency  = effective_currency(package)
-        cache_key = build_cache_key(dest_country, dest_postal, dest_city, weight, dimensions, currency)
+        currency   = effective_currency(package)
+        cache_key  = build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
 
         rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes, skip_nil: true) do
           client = SpreeDhl::DhlExpressClient.new(
             username:                 preferred_username,
             password:                 preferred_password,
             account_number:           preferred_account_number,
-            origin_country_code:      preferred_origin_country_code,
-            origin_postal_code:       preferred_origin_postal_code,
-            origin_city_name:         preferred_origin_city_name,
+            origin_country_code:      origin_country,
+            origin_postal_code:       origin_postal,
+            origin_city_name:         origin_city,
             destination_country_code: dest_country,
             destination_postal_code:  dest_postal,
             destination_city_name:    dest_city,
@@ -103,8 +113,7 @@ module Spree
           preferred_username,
           preferred_password,
           preferred_account_number,
-          preferred_origin_country_code,
-          preferred_origin_postal_code
+          preferred_stock_location_id
         ].any?(&:blank?)
       end
 
@@ -137,14 +146,15 @@ module Spree
         preferred_currency.presence || package.order.currency || Spree::Config.currency
       end
 
-      def build_cache_key(dest_country, dest_postal, dest_city, weight, dimensions, currency)
+      def build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
         [
           'spree_dhlx',
           'rates',
           preferred_account_number,
-          preferred_origin_country_code,
-          preferred_origin_postal_code,
+          preferred_stock_location_id,
           preferred_unit_of_measurement,
+          origin_country,
+          origin_postal,
           dest_country,
           dest_postal,
           dest_city,

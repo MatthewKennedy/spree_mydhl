@@ -1,6 +1,5 @@
 ---
 en:
   spree:
-    dhl:
-      hello: Hello SpreeDhl
     dhl_express: DHL Express
+    select_stock_location: "— Select stock location —"

@@ -1,10 +1,10 @@
-# Spree DHL Express
+# Spree MyDHL
 
-A [Spree Commerce](https://spreecommerce.org) extension that adds DHL Express as a real-time shipping rate calculator. It connects to the [DHL MyDHL API](https://developer.dhl.com/api-reference/dhl-express-mydhl-api) during checkout to fetch live rates for your configured shipping methods.
+A [Spree Commerce](https://spreecommerce.org) extension that adds MyDHL as a real-time shipping rate calculator. It connects to the [DHL MyDHL API](https://developer.dhl.com/api-reference/dhl-express-mydhl-api) during checkout to fetch live rates for your configured shipping methods.
 
 ## Features
 
-- Real-time rates from the DHL Express MyDHL API
+- Real-time rates from the MyDHL API
 - Filters available shipping methods by Spree stock location
 - Optional product code filter (e.g. lock a shipping method to *Express Worldwide* only)
 - Automatic international/domestic detection for customs declarations
@@ -23,13 +23,13 @@ A [Spree Commerce](https://spreecommerce.org) extension that adds DHL Express as
 1. Add the gem to your Gemfile:
 
     ```ruby
-    bundle add spree_dhl
+    bundle add spree_mydhl
     ```
 
 2. Run the install generator:
 
     ```bash
-    bundle exec rails g spree_dhl:install
+    bundle exec rails g spree_mydhl:install
     ```
 
 3. Restart your server.

@@ -3,7 +3,7 @@ require 'uri'
 require 'json'
 require 'base64'
 
-module SpreeDhl
+module SpreeMydhl
   class DhlExpressClient
     class ApiError < StandardError; end
 
@@ -75,11 +75,11 @@ module SpreeDhl
 
       JSON.parse(response.body)
     rescue ApiError => e
-      Rails.logger.error("[SpreeDhl] DHL API error: #{e.message}")
+      Rails.logger.error("[SpreeMydhl] DHL API error: #{e.message}")
       Rails.logger.debug { Array(e.backtrace).first(5).join("\n") }
       nil
     rescue StandardError => e
-      Rails.logger.error("[SpreeDhl] DHL request failed: #{e.class}: #{e.message}")
+      Rails.logger.error("[SpreeMydhl] DHL request failed: #{e.class}: #{e.message}")
       Rails.logger.debug { Array(e.backtrace).first(5).join("\n") }
       nil
     end
@@ -95,7 +95,7 @@ module SpreeDhl
       request = Net::HTTP::Get.new(uri)
       request['Authorization'] = "Basic #{Base64.strict_encode64("#{@api_key}:#{@api_secret}")}"
       request['Accept']        = 'application/json'
-      request['User-Agent']    = "spree_dhl/#{SpreeDhl::VERSION}"
+      request['User-Agent']    = "spree_mydhl/#{SpreeMydhl::VERSION}"
       request
     end
 

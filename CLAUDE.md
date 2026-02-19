@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`spree_dhl` is a Spree Commerce extension (Rails engine gem) that adds DHL Express as a shipping rate calculator. It integrates with the DHL Express MyDHL API to fetch real-time shipping rates during checkout.
+`spree_mydhl` is a Spree Commerce extension (Rails engine gem) that adds DHL Express as a shipping rate calculator. It integrates with the DHL Express MyDHL API to fetch real-time shipping rates during checkout.
 
 ## Commands
 
@@ -17,7 +17,7 @@ bundle exec rake test_app   # generates spec/dummy Rails app
 ### Running Tests
 ```bash
 bundle exec rspec                                        # all specs
-bundle exec rspec spec/lib/spree_dhl/dhl_express_client_spec.rb  # single file
+bundle exec rspec spec/lib/spree_mydhl/dhl_express_client_spec.rb  # single file
 bundle exec rspec spec/models/spree/calculator/shipping/dhl_express_spec.rb
 ```
 
@@ -37,7 +37,7 @@ bundle exec gem release
 
 ### Core Components
 
-**`SpreeDhl::DhlExpressClient`** (`lib/spree_dhl/dhl_express_client.rb`)
+**`SpreeMydhl::DhlExpressClient`** (`lib/spree_mydhl/dhl_express_client.rb`)
 - Plain Ruby HTTP client wrapping the DHL Express MyDHL API (`/rates` endpoint)
 - Authenticates with HTTP Basic Auth; supports sandbox and production URLs
 - Primary public method: `#cheapest_rate` — returns the minimum `BILLC` (billed currency) price across all returned products, or `nil` on any error
@@ -63,8 +63,8 @@ This makes it available in the Spree admin when configuring shipping methods.
 
 - Follows standard Spree extension structure (`spree_extension` gem, Zeitwerk autoloading)
 - Decorator pattern: any `*_decorator*.rb` files in `app/` are auto-loaded by the engine
-- Background jobs inherit from `SpreeDhl::BaseJob < Spree::BaseJob`, queued via `SpreeDhl.queue`
-- `SpreeDhl::Config` is a `Spree::Preferences::Configuration` instance initialized at boot
+- Background jobs inherit from `SpreeMydhl::BaseJob < Spree::BaseJob`, queued via `SpreeMydhl.queue`
+- `SpreeMydhl::Config` is a `Spree::Preferences::Configuration` instance initialized at boot
 
 ### Testing Setup
 

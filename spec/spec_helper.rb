@@ -6,7 +6,7 @@ require 'dotenv/load'
 require File.expand_path('../dummy/config/environment.rb', __FILE__)
 
 require 'spree_dev_tools/rspec/spec_helper'
-require 'spree_dhl/factories'
+require 'spree_mydhl/factories'
 
 # Requires supporting ruby files with custom matchers and macros, etc,
 # in spec/support/ and its subdirectories.

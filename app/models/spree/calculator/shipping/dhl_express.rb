@@ -33,42 +33,42 @@ module Spree
 
       def available?(package)
         if required_preferences_blank?
-          Rails.logger.debug('[SpreeDhl] available? = false: one or more required preferences are blank')
+          Rails.logger.debug('[SpreeMydhl] available? = false: one or more required preferences are blank')
           return false
         end
 
         if preferred_minimum_weight.present? && preferred_maximum_weight.present? &&
            preferred_minimum_weight.to_f > preferred_maximum_weight.to_f
-          Rails.logger.warn('[SpreeDhl] minimum_weight exceeds maximum_weight — no package can qualify; check shipping method configuration')
+          Rails.logger.warn('[SpreeMydhl] minimum_weight exceeds maximum_weight — no package can qualify; check shipping method configuration')
           return false
         end
 
         stock_location = package.stock_location
         if stock_location.nil? || stock_location.id.to_i != preferred_stock_location_id.to_i
-          Rails.logger.debug('[SpreeDhl] available? = false: package stock location does not match configured stock location')
+          Rails.logger.debug('[SpreeMydhl] available? = false: package stock location does not match configured stock location')
           return false
         end
 
         address = package.order.ship_address
         if address.nil?
-          Rails.logger.debug('[SpreeDhl] available? = false: ship_address is nil')
+          Rails.logger.debug('[SpreeMydhl] available? = false: ship_address is nil')
           return false
         end
 
         if address.country&.iso.blank?
-          Rails.logger.debug('[SpreeDhl] available? = false: ship_address country ISO is blank')
+          Rails.logger.debug('[SpreeMydhl] available? = false: ship_address country ISO is blank')
           return false
         end
 
         weight = package_weight(package)
 
         if preferred_minimum_weight.present? && weight < preferred_minimum_weight.to_f
-          Rails.logger.debug("[SpreeDhl] available? = false: weight #{weight} below minimum #{preferred_minimum_weight}")
+          Rails.logger.debug("[SpreeMydhl] available? = false: weight #{weight} below minimum #{preferred_minimum_weight}")
           return false
         end
 
         if preferred_maximum_weight.present? && weight > preferred_maximum_weight.to_f
-          Rails.logger.debug("[SpreeDhl] available? = false: weight #{weight} above maximum #{preferred_maximum_weight}")
+          Rails.logger.debug("[SpreeMydhl] available? = false: weight #{weight} above maximum #{preferred_maximum_weight}")
           return false
         end
 
@@ -82,7 +82,7 @@ module Spree
         origin_country = stock_location.country_iso
 
         if origin_country.blank?
-          Rails.logger.debug('[SpreeDhl] compute_package -> nil: stock location has no country ISO')
+          Rails.logger.debug('[SpreeMydhl] compute_package -> nil: stock location has no country ISO')
           return nil
         end
 
@@ -100,7 +100,7 @@ module Spree
         cache_key  = build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
 
         rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes, skip_nil: true) do
-          client = SpreeDhl::DhlExpressClient.new(
+          client = SpreeMydhl::DhlExpressClient.new(
             api_key:                  preferred_api_key,
             api_secret:               preferred_api_secret,
             account_number:           preferred_account_number,
@@ -123,10 +123,10 @@ module Spree
           client.cheapest_rate
         end
 
-        Rails.logger.debug("[SpreeDhl] compute_package -> #{rate.inspect} (#{dest_country} #{dest_postal})")
+        Rails.logger.debug("[SpreeMydhl] compute_package -> #{rate.inspect} (#{dest_country} #{dest_postal})")
         rate
       rescue StandardError => e
-        Rails.logger.error("[SpreeDhl] compute_package failed: #{e.class}: #{e.message}")
+        Rails.logger.error("[SpreeMydhl] compute_package failed: #{e.class}: #{e.message}")
         Rails.logger.debug { Array(e.backtrace).first(5).join("\n") }
         nil
       end
@@ -177,7 +177,7 @@ module Spree
 
       def build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
         [
-          'spree_dhlx',
+          'spree_mydhl',
           'rates',
           preferred_account_number,
           preferred_stock_location_id,

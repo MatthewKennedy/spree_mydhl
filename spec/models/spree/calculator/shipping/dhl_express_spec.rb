@@ -214,7 +214,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       before { calculator.preferred_api_key = '' }
 
       it 'returns nil without calling the client' do
-        expect(SpreeDhl::DhlExpressClient).not_to receive(:new)
+        expect(SpreeMydhl::DhlExpressClient).not_to receive(:new)
         expect(calculator.compute_package(package)).to be_nil
       end
     end
@@ -222,8 +222,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
     context 'when the client returns a cheapest rate' do
       before do
         allow(Rails.cache).to receive(:fetch).and_yield
-        client_double = instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50)
-        allow(SpreeDhl::DhlExpressClient).to receive(:new).and_return(client_double)
+        client_double = instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50)
+        allow(SpreeMydhl::DhlExpressClient).to receive(:new).and_return(client_double)
       end
 
       it 'returns the price as a Float' do
@@ -231,45 +231,45 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
 
       it 'derives origin details from the package stock location' do
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(
             origin_country_code: 'US',
             origin_postal_code:  '10001',
             origin_city_name:    'New York'
           )
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
 
       it 'passes credentials to the client' do
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(
             api_key:        'testuser',
             api_secret:     'testpass',
             account_number: '123456789'
           )
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
 
       it 'passes correct destination details to the client' do
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(
             destination_country_code: 'DE',
             destination_postal_code:  '10115',
             destination_city_name:    'Berlin'
           )
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
 
       it 'passes the order currency to the client when no currency preference is set' do
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(currency: 'USD')
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
@@ -277,9 +277,9 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       it 'uses the currency preference over the order currency when set' do
         calculator.preferred_currency = 'GBP'
 
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(currency: 'GBP')
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
@@ -289,9 +289,9 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         allow(order).to receive(:currency).and_return(nil)
         allow(order).to receive(:store).and_return(store)
 
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(currency: 'EUR')
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
@@ -299,9 +299,9 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       it 'passes the product_code preference to the client when set' do
         calculator.preferred_product_code = 'P'
 
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(product_code: 'P')
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
@@ -309,9 +309,9 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       it 'passes customs_declarable preference to the client when set' do
         calculator.preferred_customs_declarable = false
 
-        expect(SpreeDhl::DhlExpressClient).to receive(:new).with(
+        expect(SpreeMydhl::DhlExpressClient).to receive(:new).with(
           hash_including(customs_declarable: false)
-        ).and_return(instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: 42.50))
+        ).and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 42.50))
 
         calculator.compute_package(package)
       end
@@ -327,7 +327,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
 
       it 'returns nil without calling the client' do
-        expect(SpreeDhl::DhlExpressClient).not_to receive(:new)
+        expect(SpreeMydhl::DhlExpressClient).not_to receive(:new)
         expect(calculator.compute_package(package)).to be_nil
       end
 
@@ -341,8 +341,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
     context 'when the client returns nil (API error)' do
       before do
         allow(Rails.cache).to receive(:fetch).and_yield
-        client_double = instance_double(SpreeDhl::DhlExpressClient, cheapest_rate: nil)
-        allow(SpreeDhl::DhlExpressClient).to receive(:new).and_return(client_double)
+        client_double = instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: nil)
+        allow(SpreeMydhl::DhlExpressClient).to receive(:new).and_return(client_double)
       end
 
       it 'returns nil' do
@@ -353,7 +353,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
     context 'when the client raises an exception' do
       before do
         allow(Rails.cache).to receive(:fetch).and_yield
-        allow(SpreeDhl::DhlExpressClient).to receive(:new).and_raise(StandardError, 'network down')
+        allow(SpreeMydhl::DhlExpressClient).to receive(:new).and_raise(StandardError, 'network down')
       end
 
       it 'returns nil and does not propagate the error' do
@@ -374,7 +374,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
       it 'uses Rails.cache with a 10-minute expiry and skip_nil' do
         expect(Rails.cache).to receive(:fetch).with(
-          a_string_starting_with('spree_dhlx/rates/'),
+          a_string_starting_with('spree_mydhl/rates/'),
           expires_in: 10.minutes,
           skip_nil:   true
         ).and_return(29.99)
@@ -384,12 +384,12 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
       it 'skips the client call on a cache hit' do
         allow(Rails.cache).to receive(:fetch).with(
-          a_string_starting_with('spree_dhlx/rates/'),
+          a_string_starting_with('spree_mydhl/rates/'),
           expires_in: 10.minutes,
           skip_nil:   true
         ).and_return(29.99)
 
-        expect(SpreeDhl::DhlExpressClient).not_to receive(:new)
+        expect(SpreeMydhl::DhlExpressClient).not_to receive(:new)
         calculator.compute_package(package)
       end
     end

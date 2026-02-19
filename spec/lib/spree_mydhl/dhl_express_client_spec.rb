@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'webmock/rspec'
 
-RSpec.describe SpreeDhl::DhlExpressClient do
+RSpec.describe SpreeMydhl::DhlExpressClient do
   subject(:client) do
     described_class.new(
       api_key:                  'testuser',
@@ -268,7 +268,7 @@ RSpec.describe SpreeDhl::DhlExpressClient do
       it 'sends a User-Agent header identifying the gem' do
         client.cheapest_rate
         expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/)
-          .with(headers: { 'User-Agent' => "spree_dhl/#{SpreeDhl::VERSION}" })
+          .with(headers: { 'User-Agent' => "spree_mydhl/#{SpreeMydhl::VERSION}" })
       end
 
       it 'includes required query parameters' do

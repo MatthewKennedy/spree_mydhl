@@ -87,7 +87,7 @@ module SpreeDhl
     def build_uri
       base_url = @sandbox ? SANDBOX_BASE_URL : PRODUCTION_BASE_URL
       uri = URI("#{base_url}/rates")
-      uri.query = URI.encode_www_form(query_params)
+      uri.query = URI.encode_www_form(query_params.reject { |_, v| v.to_s.strip.empty? })
       uri
     end
 
@@ -127,7 +127,7 @@ module SpreeDhl
     end
 
     def planned_shipping_date
-      Date.today.iso8601
+      Date.current.iso8601
     end
   end
 end

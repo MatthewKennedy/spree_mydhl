@@ -28,7 +28,7 @@ module Spree
       preference :maximum_weight,      :decimal, default: nil, nullable: true
 
       def self.description
-        'DHL Express'
+        'MyDHL Live Rates'
       end
 
       def available?(package)

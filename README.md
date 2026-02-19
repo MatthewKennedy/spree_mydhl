@@ -1,59 +1,120 @@
-# Spree Dhl
+# Spree DHL Express
 
-This is a Dhl extension for [Spree Commerce](https://spreecommerce.org), an open source e-commerce platform built with Ruby on Rails.
+A [Spree Commerce](https://spreecommerce.org) extension that adds DHL Express as a real-time shipping rate calculator. It connects to the [DHL MyDHL API](https://developer.dhl.com/api-reference/dhl-express-mydhl-api) during checkout to fetch live rates for your configured shipping methods.
+
+## Features
+
+- Real-time rates from the DHL Express MyDHL API
+- Filters available shipping methods by Spree stock location
+- Optional product code filter (e.g. lock a shipping method to *Express Worldwide* only)
+- Automatic international/domestic detection for customs declarations
+- Optional weight-based availability rules (min/max)
+- Rates cached for 10 minutes to avoid redundant API calls
+- Sandbox and production API support
+- Admin dropdown selectors for stock location and DHL product code
+
+## Requirements
+
+- Ruby >= 3.2
+- Spree >= 5.3.3
 
 ## Installation
 
-1. Add this extension to your Gemfile with this line:
+1. Add the gem to your Gemfile:
 
     ```ruby
     bundle add spree_dhl
     ```
 
-2. Run the install generator
+2. Run the install generator:
 
-    ```ruby
+    ```bash
     bundle exec rails g spree_dhl:install
     ```
 
-3. Restart your server
+3. Restart your server.
 
-  If your server was running, restart it so that it can find the assets properly.
+## Configuration
 
-## Developing
+### DHL API Credentials
 
-1. Create a dummy app
+Sign in to the [DHL Developer Portal](https://developer.dhl.com) and create an application to obtain your API Key and API Secret.
 
-    ```bash
-    bundle update
-    bundle exec rake test_app
-    ```
+### Setting Up a Shipping Method
 
-2. Add your new code
-3. Run tests
+1. In the Spree admin, go to **Configuration → Shipping Methods** and create a new shipping method.
+2. Select **DHL Express** as the calculator.
+3. Fill in the calculator preferences:
 
-    ```bash
-    bundle exec rspec
-    ```
+| Preference | Description |
+|---|---|
+| **API Key** | Your DHL MyDHL API key |
+| **API Secret** | Your DHL MyDHL API secret |
+| **Account Number** | Your DHL account number |
+| **Stock Location** | The stock location shipments originate from |
+| **Unit of Measurement** | `metric` (kg/cm) or `imperial` (lb/in) — must match your variant dimensions |
+| **Currency** | Currency for quoted rates (defaults to the store's default currency) |
+| **Sandbox** | Enable to use the DHL test environment |
+| **Product Code** | Optional — restrict to a specific DHL service (see below) |
+| **Customs Declarable** | Optional — override automatic international detection |
+| **Minimum Weight** | Optional — hide this method below a package weight threshold |
+| **Maximum Weight** | Optional — hide this method above a package weight threshold |
 
-When testing your applications integration with this extension you may use it's factories.
-Simply add this require statement to your spec_helper:
+### DHL Product Codes
 
-```ruby
-require 'spree_dhl/factories'
+By default the calculator returns the cheapest rate across all DHL products available for the route. Set a product code to lock the shipping method to a specific service level:
+
+| Code | Service |
+|---|---|
+| `P` | Express Worldwide |
+| `D` | Express Worldwide Doc |
+| `K` | Express 9:00 |
+| `W` | Express 10:30 |
+| `T` | Express 12:00 |
+| `Y` | Express 12:00 Doc |
+| `H` | Economy Select |
+| `N` | Domestic Express |
+
+### Variant Dimensions
+
+The API requires package dimensions. These are derived from your Spree variant attributes:
+
+- **Length** — largest `depth` across all items in the package
+- **Width** — largest `width` across all items in the package
+- **Height** — sum of `height × quantity` across all items
+
+Dimensions fall back to `1.0` if all variants report zero. Make sure your variant dimensions are stored in units consistent with the **Unit of Measurement** preference — no automatic conversion is applied.
+
+### Customs Declarations
+
+By default, `isCustomsDeclarable` is set to `true` whenever the origin and destination country codes differ. Use the **Customs Declarable** preference to override this (e.g. for shipments between territories that share a country code).
+
+## Upgrading
+
+### From a version using `username` / `password` preferences
+
+Version 0.1.0 renamed the credential preferences from `username`/`password` to `api_key`/`api_secret`. Run the bundled migration to update any existing shipping method configurations:
+
+```bash
+bundle exec rails db:migrate
 ```
 
-## Releasing a new version
+## Development
 
-```shell
-bundle exec gem bump -p -t
+```bash
+bundle update
+bundle exec rake test_app   # generate the spec/dummy Rails app
+bundle exec rspec           # run the test suite
+bundle exec rubocop         # lint
+```
+
+## Releasing
+
+```bash
+bundle exec gem bump -p -t  # bump patch version and tag
 bundle exec gem release
 ```
 
-For more options please see [gem-release README](https://github.com/svenfuchs/gem-release)
+## License
 
-## Contributing
-
-If you'd like to contribute, please take a look at the
-[instructions](CONTRIBUTING.md) for installing dependencies and crafting a good
-pull request.
+[AGPL-3.0-or-later](LICENSE.md)

@@ -1,8 +1,8 @@
 ---
 en:
   spree:
-    api_key: API Key
-    api_secret: API Secret
+    api_key: MyDHL API Key
+    api_secret: MyDHL API Secret
     dhl_express: DHL Express
     product_code: DHL Product Code
     select_stock_location: "— Select stock location —"

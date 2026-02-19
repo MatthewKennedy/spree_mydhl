@@ -298,6 +298,32 @@ RSpec.describe SpreeDhl::DhlExpressClient do
           query: hash_including('nextBusinessDay' => 'true')
         )
       end
+
+      it 'uses the current Rails timezone date for plannedShippingDate' do
+        allow(Date).to receive(:current).and_return(Date.new(2026, 2, 19))
+        client.cheapest_rate
+        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/).with(
+          query: hash_including('plannedShippingDate' => '2026-02-19')
+        )
+      end
+    end
+
+    context 'with blank optional location parameters' do
+      subject(:sparse_client) do
+        build_client(origin_postal_code: '', origin_city_name: '', destination_postal_code: '', destination_city_name: '')
+      end
+
+      before { stub_dhl_api }
+
+      it 'omits blank postal codes and city names from the request' do
+        sparse_client.cheapest_rate
+        expect(WebMock).not_to have_requested(:get, /express\.api\.dhl\.com/).with(
+          query: hash_including('originPostalCode' => '')
+        )
+        expect(WebMock).not_to have_requested(:get, /express\.api\.dhl\.com/).with(
+          query: hash_including('originCityName' => '')
+        )
+      end
     end
 
     context 'with customs_declarable override' do

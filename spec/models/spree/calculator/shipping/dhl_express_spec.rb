@@ -34,8 +34,8 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
   end
 
   describe '.description' do
-    it 'returns DHL Express' do
-      expect(described_class.description).to eq('DHL Express')
+    it 'returns MyDHL Live Rates' do
+      expect(described_class.description).to eq('MyDHL Live Rates')
     end
   end
 

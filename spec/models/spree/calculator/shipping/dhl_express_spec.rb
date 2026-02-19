@@ -7,7 +7,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
   let(:address) { build(:address, country: country, zipcode: '10115', city: 'Berlin') }
   let(:order)   { build(:order, ship_address: address, currency: 'USD') }
   let(:variant) { build(:variant, depth: 10.0, width: 5.0, height: 3.0, weight: 1.0) }
-  let(:content) { instance_double(Spree::Stock::ContentItem, variant: variant) }
+  let(:content) { instance_double(Spree::Stock::ContentItem, variant: variant, quantity: 1) }
   let(:package) do
     instance_double(Spree::Stock::Package,
                     order:    order,
@@ -113,6 +113,40 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
       it 'returns false' do
         expect(calculator.available?(package)).to be false
+      end
+    end
+
+    context 'when weight is below minimum_weight' do
+      before do
+        set_required_preferences
+        calculator.preferred_minimum_weight = 2.0
+      end
+
+      it 'returns false' do
+        expect(calculator.available?(package)).to be false
+      end
+    end
+
+    context 'when weight is above maximum_weight' do
+      before do
+        set_required_preferences
+        calculator.preferred_maximum_weight = 1.0
+      end
+
+      it 'returns false' do
+        expect(calculator.available?(package)).to be false
+      end
+    end
+
+    context 'when weight is within min/max bounds' do
+      before do
+        set_required_preferences
+        calculator.preferred_minimum_weight = 1.0
+        calculator.preferred_maximum_weight = 2.0
+      end
+
+      it 'returns true' do
+        expect(calculator.available?(package)).to be true
       end
     end
 

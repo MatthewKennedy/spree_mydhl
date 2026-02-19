@@ -57,7 +57,7 @@ module SpreeDhl
       uri = build_uri
       request = build_request(uri)
 
-      response = Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+      response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 10) do |http|
         http.request(request)
       end
 
@@ -84,7 +84,6 @@ module SpreeDhl
     def build_request(uri)
       request = Net::HTTP::Get.new(uri)
       request['Authorization'] = "Basic #{Base64.strict_encode64("#{@username}:#{@password}")}"
-      request['Content-Type']  = 'application/json'
       request['Accept']        = 'application/json'
       request
     end
@@ -114,8 +113,8 @@ module SpreeDhl
 
     def planned_shipping_date
       date = Date.today
-      date += 1 if date.saturday?
-      date += 2 if date.sunday?
+      date += 2 if date.saturday?
+      date += 1 if date.sunday?
       date.iso8601
     end
   end

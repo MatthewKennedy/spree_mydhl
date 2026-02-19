@@ -196,6 +196,24 @@ RSpec.describe SpreeDhl::DhlExpressClient do
       end
     end
 
+    context 'planned shipping date' do
+      before { stub_dhl_api }
+
+      it 'skips to Monday when today is Saturday' do
+        allow(Date).to receive(:today).and_return(Date.new(2026, 2, 21)) # Saturday
+        client.cheapest_rate
+        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/)
+          .with(query: hash_including('plannedShippingDate' => '2026-02-23'))
+      end
+
+      it 'skips to Monday when today is Sunday' do
+        allow(Date).to receive(:today).and_return(Date.new(2026, 2, 22)) # Sunday
+        client.cheapest_rate
+        expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/)
+          .with(query: hash_including('plannedShippingDate' => '2026-02-23'))
+      end
+    end
+
     context 'request structure' do
       before { stub_dhl_api }
 
@@ -203,6 +221,12 @@ RSpec.describe SpreeDhl::DhlExpressClient do
         client.cheapest_rate
         expect(WebMock).to have_requested(:get, /express\.api\.dhl\.com/)
           .with(headers: { 'Authorization' => 'Basic dGVzdHVzZXI6dGVzdHBhc3M=' })
+      end
+
+      it 'does not send a Content-Type header' do
+        client.cheapest_rate
+        expect(WebMock).not_to have_requested(:get, /express\.api\.dhl\.com/)
+          .with(headers: { 'Content-Type' => 'application/json' })
       end
 
       it 'includes required query parameters' do

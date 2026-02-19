@@ -1,3 +1,2 @@
 bump:
   file: "lib/spree_mydhl/version.rb"
-

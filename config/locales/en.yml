@@ -9,6 +9,7 @@ en:
     handling_fee: Handline fee
     markup_percentage: Markup (%)
     maximum_weight: Maximum weight
+    minimum_weight: Minimum_weight
     customs_declarable: Customs declarable
     sandbox: Sandbox
     account_number: Account number

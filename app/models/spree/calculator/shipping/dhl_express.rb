@@ -28,6 +28,7 @@ module Spree
       preference :maximum_weight,      :decimal, default: nil, nullable: true
       preference :markup_percentage,   :decimal, default: nil, nullable: true
       preference :handling_fee,        :decimal, default: nil, nullable: true
+      preference :cache_ttl_minutes,   :integer, default: 10
 
       def self.description
         'MyDHL Live Rates'
@@ -101,7 +102,7 @@ module Spree
         currency   = effective_currency(package)
         cache_key  = build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
 
-        rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes, skip_nil: true) do
+        rate = Rails.cache.fetch(cache_key, expires_in: preferred_cache_ttl_minutes.minutes, skip_nil: true) do
           client = SpreeMydhl::DhlExpressClient.new(
             api_key:                  preferred_api_key,
             api_secret:               preferred_api_secret,

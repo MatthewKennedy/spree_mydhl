@@ -447,7 +447,7 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       # here ensures that call completes before any stub is installed.
       before { [variant, content] }
 
-      it 'uses Rails.cache with a 10-minute expiry and skip_nil' do
+      it 'uses Rails.cache with the default 10-minute expiry and skip_nil' do
         expect(Rails.cache).to receive(:fetch).with(
           a_string_starting_with('spree_mydhl/rates/'),
           expires_in: 10.minutes,
@@ -455,6 +455,18 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         ).and_return(29.99)
 
         expect(calculator.compute_package(package)).to eq(29.99)
+      end
+
+      it 'uses the cache_ttl_minutes preference when set' do
+        calculator.preferred_cache_ttl_minutes = 30
+
+        expect(Rails.cache).to receive(:fetch).with(
+          a_string_starting_with('spree_mydhl/rates/'),
+          expires_in: 30.minutes,
+          skip_nil:   true
+        ).and_return(29.99)
+
+        calculator.compute_package(package)
       end
 
       it 'skips the client call on a cache hit' do

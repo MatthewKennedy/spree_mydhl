@@ -61,6 +61,7 @@ Sign in to the [DHL Developer Portal](https://developer.dhl.com) and create an a
 | **Maximum Weight** | Optional — hide this method above a package weight threshold |
 | **Markup Percentage** | Optional — percentage added on top of the DHL rate (e.g. `10` adds 10%) |
 | **Handling Fee** | Optional — flat amount added after any percentage markup |
+| **Cache TTL Minutes** | How long to cache rates (default: `10`) |
 
 ### DHL Product Codes
 

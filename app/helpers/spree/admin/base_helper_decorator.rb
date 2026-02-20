@@ -5,7 +5,7 @@ module Spree
         return super unless object.is_a?(Spree::Calculator::Shipping::DhlExpress)
 
         fields = Spree::Calculator::Shipping::DhlExpress::PREFERENCE_ORDER.map do |key|
-          preference_field(object, form, key, i18n_scope: i18n_scope)
+          key == :hr ? tag.hr(style: 'margin-top: 17px; margin-bottom: 34px;') : preference_field(object, form, key, i18n_scope: i18n_scope)
         end
         safe_join(fields)
       end

@@ -143,8 +143,11 @@ module Spree
       end
 
       def package_weight(package)
-        weight = package.weight
-        weight.positive? ? weight.to_f : 0.1
+        @package_weights ||= {}
+        @package_weights[package.object_id] ||= begin
+          w = package.weight
+          w.positive? ? w.to_f : 0.1
+        end
       end
 
       # Computes package dimensions from variant attributes.

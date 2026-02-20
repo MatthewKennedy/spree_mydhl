@@ -207,6 +207,20 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
     end
   end
 
+  describe '#package_weight (memoisation)' do
+    before { set_required_preferences }
+
+    it 'reads package.weight only once even when available? and compute_package both call it' do
+      allow(Rails.cache).to receive(:fetch).and_yield
+      allow(SpreeMydhl::DhlExpressClient).to receive(:new)
+        .and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 1.0))
+
+      expect(package).to receive(:weight).once.and_return(1.5)
+
+      calculator.compute_package(package)
+    end
+  end
+
   describe '#compute_package' do
     before { set_required_preferences }
 

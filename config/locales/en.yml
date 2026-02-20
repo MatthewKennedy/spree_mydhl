@@ -1,8 +1,15 @@
 ---
 en:
   spree:
-    api_key: MyDHL API Key
-    api_secret: MyDHL API Secret
-    dhl_express: DHL Express
+    api_key: MyDHL API key
+    api_secret: MyDHL API secret
     product_code: DHL Product Code
     select_stock_location: "— Select stock location —"
+    cache_ttl_minutes: Cache TTL (minutes)
+    handling_fee: Handline fee
+    markup_percentage: Markup (%)
+    maximum_weight: Maximum weight
+    minimum_weight: Minimum_weight
+    customs_declarable: Customs declarable
+    sandbox: Sandbox
+    account_number: Account number

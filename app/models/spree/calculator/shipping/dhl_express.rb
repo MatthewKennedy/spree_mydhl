@@ -26,6 +26,9 @@ module Spree
       preference :customs_declarable,  :boolean, default: nil, nullable: true
       preference :minimum_weight,      :decimal, default: nil, nullable: true
       preference :maximum_weight,      :decimal, default: nil, nullable: true
+      preference :markup_percentage,   :decimal, default: nil, nullable: true
+      preference :handling_fee,        :decimal, default: nil, nullable: true
+      preference :cache_ttl_minutes,   :integer, default: 10
 
       def self.description
         'MyDHL Live Rates'
@@ -99,7 +102,7 @@ module Spree
         currency   = effective_currency(package)
         cache_key  = build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
 
-        rate = Rails.cache.fetch(cache_key, expires_in: 10.minutes, skip_nil: true) do
+        rate = Rails.cache.fetch(cache_key, expires_in: preferred_cache_ttl_minutes.minutes, skip_nil: true) do
           client = SpreeMydhl::DhlExpressClient.new(
             api_key:                  preferred_api_key,
             api_secret:               preferred_api_secret,
@@ -123,6 +126,7 @@ module Spree
           client.cheapest_rate
         end
 
+        rate = apply_markup(rate)
         Rails.logger.debug("[SpreeMydhl] compute_package -> #{rate.inspect} (#{dest_country} #{dest_postal})")
         rate
       rescue StandardError => e
@@ -143,8 +147,11 @@ module Spree
       end
 
       def package_weight(package)
-        weight = package.weight
-        weight.positive? ? weight.to_f : 0.1
+        @package_weights ||= {}
+        @package_weights[package.object_id] ||= begin
+          w = package.weight
+          w.positive? ? w.to_f : 0.1
+        end
       end
 
       # Computes package dimensions from variant attributes.
@@ -175,6 +182,14 @@ module Spree
         preferred_currency.presence || package.order.currency || package.order.store&.default_currency
       end
 
+      def apply_markup(rate)
+        return nil if rate.nil?
+
+        rate = rate * (1 + preferred_markup_percentage.to_f / 100.0) if preferred_markup_percentage.present?
+        rate = rate + preferred_handling_fee.to_f                    if preferred_handling_fee.present?
+        rate.round(2)
+      end
+
       def build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)
         [
           'spree_mydhl',
@@ -183,6 +198,7 @@ module Spree
           preferred_stock_location_id,
           preferred_unit_of_measurement,
           preferred_product_code,
+          preferred_customs_declarable,
           origin_country,
           origin_postal,
           dest_country,
@@ -193,7 +209,7 @@ module Spree
           dimensions[:width].round(2),
           dimensions[:height].round(2),
           currency,
-          Date.today.iso8601
+          Date.current.iso8601
         ].join('/')
       end
     end

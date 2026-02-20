@@ -9,7 +9,7 @@ A [Spree Commerce](https://spreecommerce.org) extension that adds MyDHL as a rea
 - Optional product code filter (e.g. lock a shipping method to *Express Worldwide* only)
 - Automatic international/domestic detection for customs declarations
 - Optional weight-based availability rules (min/max)
-- Rates cached for 10 minutes to avoid redundant API calls
+- Configurable rate caching to avoid redundant API calls
 - Sandbox and production API support
 - Admin dropdown selectors for stock location and DHL product code
 
@@ -59,6 +59,9 @@ Sign in to the [DHL Developer Portal](https://developer.dhl.com) and create an a
 | **Customs Declarable** | Optional — override automatic international detection |
 | **Minimum Weight** | Optional — hide this method below a package weight threshold |
 | **Maximum Weight** | Optional — hide this method above a package weight threshold |
+| **Markup Percentage** | Optional — percentage added on top of the DHL rate (e.g. `10` adds 10%) |
+| **Handling Fee** | Optional — flat amount added after any percentage markup |
+| **Cache TTL Minutes** | How long to cache rates (default: `10`) |
 
 ### DHL Product Codes
 

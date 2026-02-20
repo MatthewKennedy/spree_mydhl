@@ -1,6 +1,20 @@
 module Spree
   module Calculator::Shipping
     class DhlExpress < ShippingCalculator
+      PREFERENCE_ORDER = %i[
+        api_key
+        api_secret
+        account_number
+        stock_location_id
+        product_code
+        unit_of_measurement
+        currency
+        sandbox
+        customs_declarable
+        minimum_weight
+        maximum_weight
+      ].freeze
+
       UNIT_OF_MEASUREMENT_OPTIONS = %w[metric imperial].freeze
 
       PRODUCT_CODE_OPTIONS = [

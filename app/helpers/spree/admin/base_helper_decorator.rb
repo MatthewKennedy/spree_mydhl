@@ -1,6 +1,15 @@
 module Spree
   module Admin
     module BaseHelperDecorator
+      def preference_fields(object, form, i18n_scope: '')
+        return super unless object.is_a?(Spree::Calculator::Shipping::DhlExpress)
+
+        fields = Spree::Calculator::Shipping::DhlExpress::PREFERENCE_ORDER.map do |key|
+          preference_field(object, form, key, i18n_scope: i18n_scope)
+        end
+        safe_join(fields)
+      end
+
       def preference_field(object, form, key, i18n_scope: '')
         return super unless object.is_a?(Spree::Calculator::Shipping::DhlExpress)
 

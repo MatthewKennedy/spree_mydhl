@@ -380,6 +380,67 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
       end
     end
 
+    context 'markup and handling fee' do
+      before do
+        allow(Rails.cache).to receive(:fetch).and_yield
+        allow(SpreeMydhl::DhlExpressClient).to receive(:new)
+          .and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 100.0))
+      end
+
+      it 'returns the raw rate when neither preference is set' do
+        expect(calculator.compute_package(package)).to eq(100.0)
+      end
+
+      it 'applies markup_percentage on top of the raw rate' do
+        calculator.preferred_markup_percentage = 10.0
+        expect(calculator.compute_package(package)).to eq(110.0)
+      end
+
+      it 'adds handling_fee on top of the raw rate' do
+        calculator.preferred_handling_fee = 5.50
+        expect(calculator.compute_package(package)).to eq(105.50)
+      end
+
+      it 'applies markup_percentage first, then adds handling_fee' do
+        calculator.preferred_markup_percentage = 20.0
+        calculator.preferred_handling_fee      = 4.0
+        # (100 * 1.2) + 4.0 = 124.0
+        expect(calculator.compute_package(package)).to eq(124.0)
+      end
+
+      it 'rounds the final rate to 2 decimal places' do
+        calculator.preferred_markup_percentage = 10.0
+        allow(SpreeMydhl::DhlExpressClient).to receive(:new)
+          .and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: 33.33))
+        # 33.33 * 1.1 = 36.663 → rounds to 36.66
+        expect(calculator.compute_package(package)).to eq(36.66)
+      end
+
+      it 'returns nil when the API returns nil, regardless of markup settings' do
+        calculator.preferred_markup_percentage = 10.0
+        calculator.preferred_handling_fee      = 5.0
+        allow(SpreeMydhl::DhlExpressClient).to receive(:new)
+          .and_return(instance_double(SpreeMydhl::DhlExpressClient, cheapest_rate: nil))
+        expect(calculator.compute_package(package)).to be_nil
+      end
+
+      it 'does not include markup preferences in the cache key' do
+        # Evaluate factory objects before stubbing the cache (build(:variant) calls Rails.cache internally).
+        [variant, content]
+
+        keys = []
+        allow(Rails.cache).to receive(:fetch) { |key, **| keys << key; 100.0 }
+
+        calculator.preferred_markup_percentage = nil
+        calculator.compute_package(package)
+
+        calculator.preferred_markup_percentage = 15.0
+        calculator.compute_package(package)
+
+        expect(keys.uniq.length).to eq(1)
+      end
+    end
+
     context 'caching behaviour' do
       # Force factory objects to be evaluated before the it block sets up cache mocks.
       # build(:variant) internally calls Rails.cache.fetch('default_store'); memoizing
@@ -422,10 +483,11 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
 
       it 'uses Date.current (Rails timezone) for the cache key date segment' do
         allow(Date).to receive(:current).and_return(Date.new(2026, 2, 20))
-        allow(Rails.cache).to receive(:fetch) { |key, **| key }
+        captured_key = nil
+        allow(Rails.cache).to receive(:fetch) { |key, **| captured_key = key; 50.0 }
 
-        key = calculator.compute_package(package)
-        expect(key).to include('2026-02-20')
+        calculator.compute_package(package)
+        expect(captured_key).to include('2026-02-20')
       end
     end
   end

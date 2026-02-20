@@ -26,6 +26,8 @@ module Spree
       preference :customs_declarable,  :boolean, default: nil, nullable: true
       preference :minimum_weight,      :decimal, default: nil, nullable: true
       preference :maximum_weight,      :decimal, default: nil, nullable: true
+      preference :markup_percentage,   :decimal, default: nil, nullable: true
+      preference :handling_fee,        :decimal, default: nil, nullable: true
 
       def self.description
         'MyDHL Live Rates'
@@ -123,6 +125,7 @@ module Spree
           client.cheapest_rate
         end
 
+        rate = apply_markup(rate)
         Rails.logger.debug("[SpreeMydhl] compute_package -> #{rate.inspect} (#{dest_country} #{dest_postal})")
         rate
       rescue StandardError => e
@@ -176,6 +179,14 @@ module Spree
 
       def effective_currency(package)
         preferred_currency.presence || package.order.currency || package.order.store&.default_currency
+      end
+
+      def apply_markup(rate)
+        return nil if rate.nil?
+
+        rate = rate * (1 + preferred_markup_percentage.to_f / 100.0) if preferred_markup_percentage.present?
+        rate = rate + preferred_handling_fee.to_f                    if preferred_handling_fee.present?
+        rate.round(2)
       end
 
       def build_cache_key(origin_country, origin_postal, dest_country, dest_postal, dest_city, weight, dimensions, currency)

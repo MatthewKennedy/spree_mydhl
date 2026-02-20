@@ -59,6 +59,8 @@ Sign in to the [DHL Developer Portal](https://developer.dhl.com) and create an a
 | **Customs Declarable** | Optional — override automatic international detection |
 | **Minimum Weight** | Optional — hide this method below a package weight threshold |
 | **Maximum Weight** | Optional — hide this method above a package weight threshold |
+| **Markup Percentage** | Optional — percentage added on top of the DHL rate (e.g. `10` adds 10%) |
+| **Handling Fee** | Optional — flat amount added after any percentage markup |
 
 ### DHL Product Codes
 

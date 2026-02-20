@@ -60,8 +60,11 @@ bundle exec gem release
   - `customs_declarable` — optional boolean override for customs declaration
   - `minimum_weight` — optional lower weight bound for availability
   - `maximum_weight` — optional upper weight bound for availability
+  - `markup_percentage` — optional decimal; applied as a percentage on top of the DHL rate (e.g. `10` = +10%)
+  - `handling_fee` — optional flat fee added after any percentage markup
+  - `cache_ttl_minutes` — integer, default `10`; controls how long rates are cached in `Rails.cache`
 - `#available?` returns false if required preferences are blank, stock location doesn't match, weight is outside bounds, or destination address/country is missing
-- `#compute_package` fetches a live rate via `DhlExpressClient` and caches the result in `Rails.cache` for 10 minutes; cache key includes origin/destination/dimensions/date (cache also expires naturally at midnight)
+- `#compute_package` fetches a live rate via `DhlExpressClient`, caches it for `cache_ttl_minutes` minutes, then applies markup/handling via `#apply_markup`; cache key includes origin/destination/dimensions/customs_declarable/date (cache also expires naturally at midnight)
 - Dimension extraction from variants: max length, max width, and summed height×quantity; falls back to 1.0 if all variants report zero. Weight falls back to 0.1 if zero.
 - Currency resolved in order: preference → order currency → store default currency
 

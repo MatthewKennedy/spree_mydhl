@@ -392,6 +392,27 @@ RSpec.describe Spree::Calculator::Shipping::DhlExpress do
         expect(SpreeMydhl::DhlExpressClient).not_to receive(:new)
         calculator.compute_package(package)
       end
+
+      it 'includes customs_declarable in the cache key so different overrides are not conflated' do
+        keys = []
+        allow(Rails.cache).to receive(:fetch) { |key, **| keys << key; 10.0 }
+
+        calculator.preferred_customs_declarable = true
+        calculator.compute_package(package)
+
+        calculator.preferred_customs_declarable = false
+        calculator.compute_package(package)
+
+        expect(keys.uniq.length).to eq(2)
+      end
+
+      it 'uses Date.current (Rails timezone) for the cache key date segment' do
+        allow(Date).to receive(:current).and_return(Date.new(2026, 2, 20))
+        allow(Rails.cache).to receive(:fetch) { |key, **| key }
+
+        key = calculator.compute_package(package)
+        expect(key).to include('2026-02-20')
+      end
     end
   end
 end

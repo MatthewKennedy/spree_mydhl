@@ -183,6 +183,7 @@ module Spree
           preferred_stock_location_id,
           preferred_unit_of_measurement,
           preferred_product_code,
+          preferred_customs_declarable,
           origin_country,
           origin_postal,
           dest_country,
@@ -193,7 +194,7 @@ module Spree
           dimensions[:width].round(2),
           dimensions[:height].round(2),
           currency,
-          Date.today.iso8601
+          Date.current.iso8601
         ].join('/')
       end
     end

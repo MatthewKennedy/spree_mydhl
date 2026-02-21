@@ -19,10 +19,10 @@ jobs:
       matrix:
         db: [postgres, mysql]
         include:
-          - db: postgres
-            database_url: postgres://postgres:password@localhost:5432/spree_test
-          - db: mysql
-            database_url: mysql2://root:password@127.0.0.1:3306/spree_test
+        - db: postgres
+          database_url: postgres://postgres:password@localhost:5432/spree_test
+        - db: mysql
+          database_url: mysql2://root:password@127.0.0.1:3306/spree_test
     services:
       postgres:
         image: postgres:16
@@ -52,38 +52,38 @@ jobs:
       RAILS_ENV: test
       CI: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-      - name: Install libvips
-        run: sudo apt-get update && sudo apt-get install -y libvips
-      - name: Create test app
-        run: bundle exec rake test_app
-      - name: Run specs
-        run: bundle exec rspec --format progress --format RspecJunitFormatter --out tmp/test-results/rspec.xml
+    - uses: actions/checkout@v4
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    - name: Install libvips
+      run: sudo apt-get update && sudo apt-get install -y libvips
+    - name: Create test app
+      run: bundle exec rake test_app
+    - name: Run specs
+      run: bundle exec rspec --format progress --format RspecJunitFormatter --out tmp/test-results/rspec.xml
 
   rubocop:
     name: RuboCop
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-      - name: Run RuboCop
-        run: bundle exec rubocop
+    - uses: actions/checkout@v4
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '4.0'
+        bundler-cache: true
+    - name: Run RuboCop
+      run: bundle exec rubocop
 
   brakeman:
     name: Brakeman
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-      - name: Run Brakeman
-        run: bundle exec brakeman --exit-on-warn --exit-on-error
+    - uses: actions/checkout@v4
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    - name: Run Brakeman
+      run: bundle exec brakeman --exit-on-warn --exit-on-error

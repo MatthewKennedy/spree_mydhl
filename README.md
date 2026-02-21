@@ -26,12 +26,6 @@ A [Spree Commerce](https://spreecommerce.org) extension that adds MyDHL as a rea
 bundle add spree_mydhl
 ```
 
-2. Run the install generator:
-
-```bash
-bundle exec rails g spree_mydhl:install
-```
-
 3. Restart your server.
 
 ## Configuration

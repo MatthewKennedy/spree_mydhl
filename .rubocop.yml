@@ -13,6 +13,7 @@ AllCops:
   Exclude:
     - 'spec/dummy/**/*'
     - 'lib/generators/**/*'
+    - 'vendor/**/*'
 
 Layout/LineLength:
   Max: 150

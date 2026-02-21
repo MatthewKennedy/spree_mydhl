@@ -92,22 +92,14 @@ Dimensions fall back to `1.0` if all variants report zero. Make sure your varian
 
 By default, `isCustomsDeclarable` is set to `true` whenever the origin and destination country codes differ. Use the **Customs Declarable** preference to override this (e.g. for shipments between territories that share a country code).
 
-## Upgrading
 
-### From a version using `username` / `password` preferences
-
-Version 0.1.0 renamed the credential preferences from `username`/`password` to `api_key`/`api_secret`. Run the bundled migration to update any existing shipping method configurations:
-
-```bash
-bundle exec rails db:migrate
 ```
 
 ## Development
 
 ```bash
 bundle update
-bundle exec rake test_app
-bundle exec rspec
+bundle exec rake
 bundle exec rubocop
 ```
 

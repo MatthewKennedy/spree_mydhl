@@ -15,9 +15,9 @@ task :default do
 end
 
 desc 'Generates a dummy app for testing'
-task :test_app do
+task test_app: :environment do
   ENV['LIB_NAME'] = 'spree_mydhl'
-  Rake::Task["extension:test_app"].execute(
+  Rake::Task['extension:test_app'].execute(
     install_storefront: true,
     install_admin: true
   )

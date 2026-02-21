@@ -35,6 +35,7 @@ gem 'propshaft'
 
 gem 'rubocop'
 gem 'rubocop-rails'
+gem 'rubocop-rails-omakase'
 gem 'rubocop-rspec'
 
 gemspec
